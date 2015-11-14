@@ -1,0 +1,16 @@
+{
+  "name": "apis3/framework/controller",
+  "type": "library",
+  "description": "Apis3 - Plugin - Padraorespect",
+  "require": {
+    "php": ">=5.5",
+    "apis3/framework"
+  },
+  "autoload": {
+    "classmap": [
+      "router.php",
+      "abstract_router.php",
+      "router_ini_factory.php"
+    ]
+  }
+}
