@@ -1,5 +1,5 @@
 {
-  "name": "apis3-respect/controller",
+  "name": "apis3-respect/router",
   "type": "library",
   "description": "Apis3 - Plugin - Padraorespect",
   "require": {
