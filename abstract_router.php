@@ -5,6 +5,7 @@ use Respect\Rest;
 use Respect\Validation\Exceptions\CallException;
 use Respect\Validation\Exceptions\ExecutableException;
 use Respect\Validation\Exceptions\FileException;
+use Framework\Utilities;
 
 class AbstractRouter implements Rest\Routable {
 
@@ -29,9 +30,10 @@ class AbstractRouter implements Rest\Routable {
     protected function callAction()
     {
         $this->validAction();
+        $controller_class = $this->getNamespaceController();
         return call_user_func(
             [
-                $this->getNamespaceController(),
+                new $controller_class,
                 $this->action,
             ],
             $this->parameters
@@ -40,7 +42,7 @@ class AbstractRouter implements Rest\Routable {
 
     protected function validAction()
     {
-        self::validController();
+        $this->validController();
 
         if (false === is_callable(array($this->getNamespaceController(), $this->action)))
         {
@@ -50,21 +52,21 @@ class AbstractRouter implements Rest\Routable {
 
     protected function validController()
     {
-        if (false === class_exists($this->generateControllerNamespace()))
+        if (false === class_exists($this->getNamespaceController()))
         {
             throw new \Exception("Classe ".$this->controller." não foi encontrodada", 404);
         }
     }
 
-    private function setUrlParams($url_params)
+    protected function setUrlParams($url_params)
     {
-        $utilities = \Framework::get();
+        $utilities = \Framework::utilities();
 
         $this->controller   = isset($url_params[0])
-            ? $utilities->formater($url_params[0], \Utilities::FORMAT_CAMELCASE) : 'Index';
+            ? $utilities->formater($url_params[0], Utilities::FORMAT_CAMELCASE) : 'Index';
 
         $this->action       = isset($url_params[1])
-            ? $utilities->formater($url_params[1], \Utilities::FORMAT_CAMELCASE_2) : 'index';
+            ? $utilities->formater($url_params[1], Utilities::FORMAT_CAMELCASE_2) : 'index';
 
         $this->parameters   = isset($url_params[2])
             ? array_slice($url_params, 2) : [];
@@ -76,7 +78,7 @@ class AbstractRouter implements Rest\Routable {
         {
             $module = $this->module ? $this->module."\\" : "";
             $controller = $this->controller;
-            $this->namespace_controller = CONTROLLER_PATH.$module.$controller;
+            $this->namespace_controller = self::CONTROLLER_PATH.$module.$controller;
         }
 
         return $this->namespace_controller;

@@ -9,7 +9,7 @@ class RouterIniFactory extends Router {
 
     public function __construct(Container $routes_ini)
     {
-        if (!isset($routes_in_ini->virtualHost))
+        if (!isset($routes_ini->virtualHost))
             throw new \Exception("É necessário Definir a diretiva virtualHost no seu container de rotas.");
 
         $this->routes_ini = $routes_ini;
@@ -27,9 +27,15 @@ class RouterIniFactory extends Router {
 
     protected function iniModulesGenerate()
     {
-        if (!$this->haveModules)
-            return $this->any("/**", new Controller\Router());
+        if ($this->haveModules())
+            return $this->modulesGenerator($this->routes_ini->modules);
 
+        else
+            return $this->any("/**", new Controller\Router());
+    }
+
+    private function modulesGenerator($modules)
+    {
         foreach($this->routes_ini->modules as $module_uri => $module_real_path)
             yield $this->any("/" . rtrim($module_uri, "/") . "/**", new Controller\Router($module_real_path));
     }
@@ -38,7 +44,7 @@ class RouterIniFactory extends Router {
     {
         $this->exceptionRoute(
             '\\Exception',
-            function(Exception $e)
+            function($e)
             {
                 if ($e instanceof \Framework\ExceptionHttpResponse)
                 {
@@ -49,10 +55,10 @@ class RouterIniFactory extends Router {
                 if (class_exists("\\Application\\Mvc\\Controller\\Exception", true))
                 {
                     $e_controller = new \Application\Mvc\Controller\Exception();
-                    return $e_controller->dispatch($e);
+                    $e_controller->dispatch($e);
                 } else
                 {
-                    return $e->getMessage();
+                    return null;
                 }
             }
         );
@@ -107,7 +113,7 @@ class RouterIniFactory extends Router {
 
     private function haveModules()
     {
-        return isset($this->routes_ini->modules;
+        return isset($this->routes_ini->modules);
     }
 
     private function haveCustom() {
@@ -117,12 +123,14 @@ class RouterIniFactory extends Router {
     protected function alwaysInJson()
     {
         return $this->always('Accept', [
-                'application/json' =>
+                'text/html' =>
                 function($data)
                 {
                     if (empty($data)) return null;
 
+                    $_SERVER['CONTENT_TYPE'] = "application/json";
                     header('Content-type: application/json');
+
                     if ( is_string($data))
                     {
                         $data = array($data);
