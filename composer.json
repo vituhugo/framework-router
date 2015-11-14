@@ -1,10 +1,10 @@
 {
-  "name": "apis3/respect/controller",
+  "name": "apis3-respect/controller",
   "type": "library",
   "description": "Apis3 - Plugin - Padraorespect",
   "require": {
     "php": ">=5.5",
-    "apis3/respect/framework": "x"
+    "apis3-respect/framework": "x"
   },
   "autoload": {
     "classmap": [
