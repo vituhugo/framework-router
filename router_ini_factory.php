@@ -7,13 +7,10 @@ class RouterIniFactory extends Router {
 
     public $routes_ini;
 
-    public function __construct(Container $routes_ini)
+    public function __construct(Container $routes_ini, $virtualHost = null)
     {
-        if (!isset($routes_in_ini->virtualHost))
-            throw new \Exception("É necessário Definir a diretiva virtualHost no seu container de rotas.");
-
         $this->routes_ini = $routes_ini;
-        $this->virtualHost = $this->routes_ini->virtualHost;
+        $this->virtualHost = $virtualHost;
         $this->routesGenerate();
     }
 
@@ -27,10 +24,16 @@ class RouterIniFactory extends Router {
 
     protected function iniModulesGenerate()
     {
-        if (!$this->haveModules)
-            return $this->any("/**", new Controller\Router());
+        if ($this->haveModules())
+            return $this->modulesGenerator();
 
-        foreach($this->routes_ini->modules as $module_uri => $module_real_path)
+        else
+            return $this->any("/**", new Controller\Router());
+    }
+
+    private function modulesGenerator()
+    {
+        foreach($this->routes_ini->module as $module_uri => $module_real_path)
             yield $this->any("/" . rtrim($module_uri, "/") . "/**", new Controller\Router($module_real_path));
     }
 
@@ -38,7 +41,7 @@ class RouterIniFactory extends Router {
     {
         $this->exceptionRoute(
             '\\Exception',
-            function(Exception $e)
+            function($e)
             {
                 if ($e instanceof \Framework\ExceptionHttpResponse)
                 {
@@ -52,7 +55,7 @@ class RouterIniFactory extends Router {
                     return $e_controller->dispatch($e);
                 } else
                 {
-                    return $e->getMessage();
+                    return null;
                 }
             }
         );
@@ -64,39 +67,17 @@ class RouterIniFactory extends Router {
             return null;
 
         $routes_custom = $this->routes_ini->custom;
-        foreach($routes_custom as $probably_controller => $route)
+        foreach($routes_custom as $custom_path => $real_path_in_pieces)
         {
-            foreach($route as $probably_action => $probably_path_action)
-            {
-                if (is_object($probably_path_action))
-                {
-                    //It's Wrong! path_action is a container of $real_path_action
-                    foreach($probably_path_action as $real_action => $real_path_action)
-                    {
-                        self::newCustomRoute
-                        (
-                            $real_path_action,
-                            $real_action,
-                            $probably_action, //Controller Name
-                            $probably_controller //Module Name
-                        ); continue;
-                    }
-                }
-                self::newCustomRoute
-                (
-                    $probably_path_action,
-                    $probably_action,
-                    $probably_controller
-                );
-            }
+            $this->newCustomRoute($custom_path, ...array_reverse($real_path_in_pieces));
         }
     }
 
-    public function newCustomRoute($path, $action, $controller, $module = null)
+    protected function newCustomRoute($path, $action, $controller, $module = null)
     {
-        $callControllerAction = function() use ($action, $controller, $module)
+        $callActionController = function() use ($action, $controller, $module)
         {
-            $url_params = array_merge(array_filter([$module, $controller, $action]) , func_get_arg());
+            $url_params = array_merge(array_filter([$module, $controller, $action]) , func_get_args());
 
             $manager_cotroller = new Controller\Router($module);
             return $manager_cotroller->get($url_params);
@@ -107,7 +88,7 @@ class RouterIniFactory extends Router {
 
     private function haveModules()
     {
-        return isset($this->routes_ini->modules;
+        return isset($this->routes_ini->module) && isset($this->routes_ini->module[0]);
     }
 
     private function haveCustom() {
@@ -117,16 +98,18 @@ class RouterIniFactory extends Router {
     protected function alwaysInJson()
     {
         return $this->always('Accept', [
-                'application/json' =>
+                'text/html' =>
                 function($data)
                 {
-                    if (empty($data)) return null;
+                    if (empty($data))
+                        return null;
 
+                    $_SERVER['CONTENT_TYPE'] = "application/json";
                     header('Content-type: application/json');
-                    if ( is_string($data))
-                    {
-                        $data = array($data);
-                    }
+
+                    if (is_string($data))
+                        $data = [$data];
+
                     return json_encode($data,true);
                 }
             ]
