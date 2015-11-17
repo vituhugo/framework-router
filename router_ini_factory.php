@@ -9,9 +9,6 @@ class RouterIniFactory extends Router {
 
     public function __construct(Container $routes_ini, $virtualHost = null)
     {
-        if (!isset($routes_ini->virtualHost))
-            throw new \Exception("É necessário Definir a diretiva virtualHost no seu container de rotas.");
-
         $this->routes_ini = $routes_ini;
         $this->virtualHost = $virtualHost;
         $this->routesGenerate();
