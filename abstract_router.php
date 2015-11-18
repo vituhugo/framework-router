@@ -5,15 +5,19 @@ use Respect\Rest;
 use Respect\Validation\Exceptions\CallException;
 use Respect\Validation\Exceptions\ExecutableException;
 use Respect\Validation\Exceptions\FileException;
+use Framework\Utilities;
+use Framework\ExceptionHttpResponse;
 
 class AbstractRouter implements Rest\Routable {
 
     const CONTROLLER_PATH = \Framework::CONTROLLER_PATH;
 
-    protected $module;
-    protected $controller;
-    protected $action;
+    protected $name_module;
+    protected $name_controller;
+    protected $name_action;
     protected $parameters;
+
+    protected $obj_controller;
 
     public function __construct(String $modules = null)
     {
@@ -28,11 +32,17 @@ class AbstractRouter implements Rest\Routable {
 
     protected function callAction()
     {
+        $this->validController();
+
+        $class_controller = $this->getNamespaceController();
+        $this->obj_controller = new $class_controller;
+
         $this->validAction();
+
         return call_user_func(
             [
-                $this->getNamespaceController(),
-                $this->action,
+                $this->obj_controller,
+                $this->name_action,
             ],
             $this->parameters
         );
@@ -40,45 +50,38 @@ class AbstractRouter implements Rest\Routable {
 
     protected function validAction()
     {
-        self::validController();
-
-        if (false === is_callable(array($this->getNamespaceController(), $this->action)))
+        if (false === is_callable(array($this->obj_controller, $this->name_action)))
         {
-            throw new \Exception("Action '$this->action' não encontroada", 404);
+            throw new \Exception("Action '$this->name_action' nÃ£o encontroada", 404);
         }
     }
 
     protected function validController()
     {
-        if (false === class_exists($this->generateControllerNamespace()))
+        if (false === class_exists($this->getNamespaceController()))
         {
-            throw new \Exception("Classe ".$this->controller." não foi encontrodada", 404);
+            throw new ExceptionHttpResponse("Classe ".$this->name_controller." nÃ£o foi encontrodada", 404);
         }
     }
 
-    private function setUrlParams($url_params)
+    protected function getNamespaceController()
     {
-        $utilities = \Framework::get();
+        $module = $this->name_module ? $this->name_module."\\" : "";
+        $controller = $this->name_controller;
+        return self::CONTROLLER_PATH.$module.$controller;
+    }
 
-        $this->controller   = isset($url_params[0])
-            ? $utilities->formater($url_params[0], \Utilities::FORMAT_CAMELCASE) : 'Index';
+    protected function setUrlParams($url_params)
+    {
+        $utilities = \Framework::utilities();
 
-        $this->action       = isset($url_params[1])
-            ? $utilities->formater($url_params[1], \Utilities::FORMAT_CAMELCASE_2) : 'index';
+        $this->name_controller   = isset($url_params[0])
+            ? $utilities->formater($url_params[0], Utilities::FORMAT_CAMELCASE) : 'Index';
+
+        $this->name_action       = isset($url_params[1])
+            ? $utilities->formater($url_params[1], Utilities::FORMAT_CAMELCASE_2) : 'index';
 
         $this->parameters   = isset($url_params[2])
             ? array_slice($url_params, 2) : [];
-    }
-
-    private function getNamespaceController()
-    {
-        if (empty($this->namespace_controller))
-        {
-            $module = $this->module ? $this->module."\\" : "";
-            $controller = $this->controller;
-            $this->namespace_controller = CONTROLLER_PATH.$module.$controller;
-        }
-
-        return $this->namespace_controller;
     }
 }

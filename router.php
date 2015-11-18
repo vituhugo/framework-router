@@ -1,5 +1,7 @@
 <?php namespace Framework\Controller;
 
+use Framework\Controller;
+use Framework\Utilities;
 use Respect\Config\Container;
 
 class Router extends AbstractRouter {
@@ -9,16 +11,14 @@ class Router extends AbstractRouter {
     static protected $_action;
     static protected $_parameters;
 
-    public function get($params)
+    protected function setUrlParams($params)
     {
-        $retorno = parent::get($params);
+        parent::setUrlParams($params);
 
-        self::$_module = $this->module;
-        self::$_controller = $this->controller;
-        self::$_action = $this->action;
+        self::$_module = $this->name_module;
+        self::$_controller = $this->name_controller;
+        self::$_action = $this->name_action;
         self::$_parameters = $this->parameters;
-
-        return $retorno;
     }
 
     static public function getUrlParams($format = false)
@@ -34,28 +34,46 @@ class Router extends AbstractRouter {
 
     static public function getController($format = false)
     {
-        return self::format(self::$controller, $format);
+        return self::format(self::$_controller, $format);
     }
 
     static public function getModule($format = false)
     {
-        return self::format(self::$module, $format);
+        return self::format(self::$_module, $format);
     }
 
     static public function getAction($format = false)
     {
-        return self::format(self::$action, $format);
+        return self::format(self::$_action, $format);
     }
 
     static public function getUrlParameters($format = false)
     {
-        return self::format(self::$parameters, $format);
+        return self::format(self::$_parameters, $format);
     }
 
     static public function format($string, $format)
     {
         $utilities = \Framework::utilities();
-        return $utilities->formater($string, $format, \Utilities::SEPARATOR_CAMELCASE);
+        return $utilities->formater($string, $format, Utilities::SEPARATOR_CAMELCASE);
     }
 
+    protected function validAction()
+    {
+        parent::validAction();
+
+        $this->validAccess();
+    }
+
+    protected function validAccess()
+    {
+        if (false === $this->obj_controller instanceof Controller\Restricted)
+            return;
+
+        $acess_controll = (new AccessControll($this->obj_controller));
+        if ($acess_controll->isAccessible($this->name_action))
+            return;
+
+        throw new ExceptionHttpResponse("Acesso não permitido.", 401);
+    }
 }
