@@ -16,12 +16,11 @@ class AbstractRouter implements Rest\Routable {
     protected $name_controller;
     protected $name_action;
     protected $parameters;
-
     protected $obj_controller;
 
-    public function __construct(String $modules = null)
+    public function __construct(String $name_module = null)
     {
-        $this->modules_enable = $modules;
+        $this->module = $name_module;
     }
 
     public function get($params)
@@ -50,9 +49,11 @@ class AbstractRouter implements Rest\Routable {
 
     protected function validAction()
     {
-        if (false === is_callable(array($this->obj_controller, $this->name_action)))
+        $this->validController();
+
+        if (false === is_callable(array($this->getNamespaceController(), $this->action)))
         {
-            throw new \Exception("Action '$this->name_action' não encontroada", 404);
+            throw new \Exception("Action '$this->action' não encontroada", 404);
         }
     }
 
