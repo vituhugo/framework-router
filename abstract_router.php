@@ -19,7 +19,7 @@ class AbstractRouter implements Rest\Routable {
 
     public function __construct(String $modules = null)
     {
-        $this->modules_enable = $modules;
+        $this->modules = $modules;
     }
 
     public function get($params)
